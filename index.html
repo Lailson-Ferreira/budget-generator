@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Gerador de Orçamento</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
+<style>
+
+body{
+font-family:Inter;
+background:#0f1117;
+color:white;
+margin:0;
+}
+
+.container{
+max-width:900px;
+margin:auto;
+padding:20px;
+}
+
+h2{
+margin-top:30px;
+border-bottom:1px solid #333;
+padding-bottom:8px;
+}
+
+input,textarea{
+width:100%;
+padding:10px;
+margin-top:5px;
+margin-bottom:15px;
+border-radius:6px;
+border:1px solid #333;
+background:#181c27;
+color:white;
+}
+
+table{
+width:100%;
+border-collapse:collapse;
+margin-top:15px;
+}
+
+th,td{
+padding:10px;
+border-bottom:1px solid #333;
+text-align:left;
+}
+
+button{
+padding:10px 18px;
+border:none;
+border-radius:6px;
+cursor:pointer;
+margin-top:10px;
+}
+
+.btn{
+background:#f5a623;
+color:black;
+font-weight:600;
+}
+
+.btn2{
+background:#25d366;
+color:white;
+}
+
+.btn3{
+background:#333;
+color:white;
+}
+
+.total{
+font-size:20px;
+font-weight:700;
+color:#f5a623;
+}
+
+.preview{
+background:white;
+color:black;
+padding:40px;
+margin-top:40px;
+}
+
+.logo{
+max-height:80px;
+}
+
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+<h1>Gerador de Orçamento</h1>
+
+<h2>Empresa</h2>
+
+<input id="empresa" placeholder="Nome da empresa">
+<input id="telefone" placeholder="Telefone">
+<input id="email" placeholder="Email">
+
+<input type="file" id="logo">
+
+<h2>Cliente</h2>
+
+<input id="cliente" placeholder="Nome do cliente">
+<input id="telefoneCliente" placeholder="Telefone cliente">
+
+<h2>Itens</h2>
+
+<table id="tabela">
+
+<thead>
+<tr>
+<th>Descrição</th>
+<th>Qtd</th>
+<th>Valor</th>
+<th>Total</th>
+<th></th>
+</tr>
+</thead>
+
+<tbody></tbody>
+
+</table>
+
+<button class="btn3" onclick="addItem()">Adicionar Item</button>
+
+<h2>Resumo</h2>
+
+Desconto %
+
+<input id="desconto" value="0" onchange="calcular()">
+
+<div class="total">
+Total: R$ <span id="total">0</span>
+</div>
+
+<br>
+
+<button class="btn" onclick="preview()">Visualizar</button>
+
+<button class="btn" onclick="gerarPDF()">Baixar PDF</button>
+
+<button class="btn2" onclick="whatsapp()">Enviar WhatsApp</button>
+
+<div id="preview" class="preview" style="display:none"></div>
+
+</div>
+
+<script>
+
+let itens=[]
+
+function addItem(){
+
+itens.push({
+desc:"",
+qtd:1,
+valor:0
+})
+
+render()
+
+}
+
+function removeItem(i){
+
+itens.splice(i,1)
+render()
+
+}
+
+function render(){
+
+let tbody=document.querySelector("#tabela tbody")
+
+tbody.innerHTML=""
+
+itens.forEach((item,i)=>{
+
+let tr=document.createElement("tr")
+
+tr.innerHTML=`
+
+<td><input value="${item.desc}" onchange="updateDesc(${i},this.value)"></td>
+
+<td><input type="number" value="${item.qtd}" onchange="updateQtd(${i},this.value)"></td>
+
+<td><input type="number" value="${item.valor}" onchange="updateValor(${i},this.value)"></td>
+
+<td>R$ ${(item.qtd*item.valor).toFixed(2)}</td>
+
+<td><button onclick="removeItem(${i})">X</button></td>
+
+`
+
+tbody.appendChild(tr)
+
+})
+
+calcular()
+
+}
+
+function updateDesc(i,v){
+
+itens[i].desc=v
+
+}
+
+function updateQtd(i,v){
+
+itens[i].qtd=parseFloat(v)
+
+calcular()
+
+}
+
+function updateValor(i,v){
+
+itens[i].valor=parseFloat(v)
+
+calcular()
+
+}
+
+function calcular(){
+
+let total=0
+
+itens.forEach(i=>{
+
+total+=i.qtd*i.valor
+
+})
+
+let desconto=document.getElementById("desconto").value
+
+total=total-(total*(desconto/100))
+
+document.getElementById("total").innerText=total.toFixed(2)
+
+}
+
+function gerarPreviewHTML(){
+
+let empresa=document.getElementById("empresa").value
+let cliente=document.getElementById("cliente").value
+
+let html=`<h2>${empresa}</h2>`
+
+html+=`<p><b>Cliente:</b> ${cliente}</p>`
+
+html+=`<table width="100%" border="1" cellspacing="0" cellpadding="6">`
+
+html+=`<tr><th>Descrição</th><th>Qtd</th><th>Valor</th><th>Total</th></tr>`
+
+itens.forEach(i=>{
+
+html+=`<tr>
+
+<td>${i.desc}</td>
+
+<td>${i.qtd}</td>
+
+<td>R$ ${i.valor}</td>
+
+<td>R$ ${(i.qtd*i.valor).toFixed(2)}</td>
+
+</tr>`
+
+})
+
+html+=`</table>`
+
+html+=`<h3>Total: R$ ${document.getElementById("total").innerText}</h3>`
+
+return html
+
+}
+
+function preview(){
+
+let div=document.getElementById("preview")
+
+div.style.display="block"
+
+div.innerHTML=gerarPreviewHTML()
+
+}
+
+async function gerarPDF(){
+
+preview()
+
+let element=document.getElementById("preview")
+
+let canvas=await html2canvas(element)
+
+let img=canvas.toDataURL("image/png")
+
+let pdf=new jspdf.jsPDF()
+
+pdf.addImage(img,'PNG',10,10,190,0)
+
+pdf.save("orcamento.pdf")
+
+}
+
+function whatsapp(){
+
+let cliente=document.getElementById("telefoneCliente").value
+
+let texto="Orçamento:\n\n"
+
+itens.forEach(i=>{
+
+texto+=`${i.desc} - ${i.qtd}x R$${i.valor}\n`
+
+})
+
+texto+=`\nTotal: R$ ${document.getElementById("total").innerText}`
+
+let url=`https://wa.me/55${cliente}?text=${encodeURIComponent(texto)}`
+
+window.open(url)
+
+}
+
+addItem()
+
+</script>
+
+</body>
+</html>
